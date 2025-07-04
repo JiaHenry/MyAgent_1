@@ -1,0 +1,15 @@
+{
+  "name": "llm-dashboard-agent",
+  "version": "1.0.0",
+  "description": "TypeScript AI agent for parsing dashboard intents using OpenAI GPT-4",
+  "main": "dist/src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node dist/tests/index.test.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6",
+    "@types/node": "^20.0.0"
+  }
+}
