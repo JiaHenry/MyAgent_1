@@ -5,15 +5,20 @@ export class PromptTemplate {
         this.prompt = prompt;
     }
 
-    public async format(): Promise<unknown> {
+    public format() {
         // const response = await openAI.chat.completions.create({ model: "gpt-4o", messages: [{role: "user", content: prompt}] });
         // const jsonRaw = response.choices[0].message.content;
         // return JSON.parse(jsonRaw);
         // TODO, use LLM to help detect indent
-        return {
-            intent: "create_dashboard",
-            details: {}
-        }
+        return { 
+            model: "gpt-4o", 
+            messages: [
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ] 
+        };
     }
 
 }

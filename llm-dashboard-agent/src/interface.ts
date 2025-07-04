@@ -1,8 +1,22 @@
+export interface IOperationDetail {
+    target: "dashboard" | "chart";
+    targetId: string;
+    operationType: "filter" | "sort";
+    details: Record<string, unknown>;
+}
+
+export interface ICreateDetail {
+    dashboard_name?: string;
+    charts?: ChartIntent[]; // 涉及的图表相关意图
+    filters?: FilterIntent[]; // 全局或图表过滤器
+    sorts?: SortIntent[]; // 排序要求
+    chart_id?: string; // 图表唯一标识，modify时必填，create时可选
+    modifications?: Record<string, unknown>; // TODO: schema for 图表修改要求
+  }
+
 export interface DashboardIntent {
   action: "create" | "modify" | "filter" | "sort" | "unknown"; // 用户意图主动作
-  charts?: ChartIntent[]; // 涉及的图表相关意图
-  filters?: FilterIntent[]; // 全局或图表过滤器
-  sorts?: SortIntent[]; // 排序要求
+  details: ICreateDetail | IOperationDetail;
 }
 
 export interface ChartIntent {

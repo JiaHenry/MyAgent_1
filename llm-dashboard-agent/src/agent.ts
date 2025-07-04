@@ -1,17 +1,20 @@
-import { Agent, AgentOptions, Goal, Step, StepResult, Workspace } from './core';
-import { LLM } from '@llm-dashboard-agent/llm';
+import { Agent, AgentOptions, Step, StepResult } from './core';
+import { DashboardIntent, ICreateDetail, IOperationDetail } from './interface';
+import { LLM } from './llm';
 import { PromptTemplate } from './prompt';
 
 export class DashboardAgent extends Agent {
   private llm: LLM;
+  private logger = console;
+
 
   constructor(options: AgentOptions) {
     super(options);
     this.llm = new LLM(options.llmOptions);
   }
 
-  async handleGoal(goal: Goal): Promise<StepResult> {
-    const userQuery = goal.description;
+  async handleGoal(userQuery: string): Promise<StepResult> {
+    //const userQuery = goal.description;
 
     // Step 1: Analyze user intent using LLM
     const intentAnalysisPrompt = new PromptTemplate(`
@@ -36,20 +39,21 @@ export class DashboardAgent extends Agent {
     `);
 
     const intentAnalysisResponse = await this.llm.generate(intentAnalysisPrompt.format());
-    const intentData = JSON.parse(intentAnalysisResponse.text);
+    const intentData = JSON.parse(intentAnalysisResponse.text) as DashboardIntent;
 
     this.logger.info('Intent Analysis:', intentData);
 
     let nextSteps: Step[] = [];
     let result: StepResult;
 
-    switch (intentData.intent) {
-      case 'create_dashboard':
+    switch (intentData.action) {
+      case 'create':
         // Step 2: If intent is to create a dashboard, generate steps for each chart
-        const dashboardName = intentData.details.dashboard_name || 'New Dashboard';
+        const createDetails = intentData.details as ICreateDetail;
+        const dashboardName = createDetails.dashboard_name || 'New Dashboard';
         this.logger.info(`Creating dashboard: ${dashboardName}`);
 
-        for (const chart of intentData.details.charts) {
+        for (const chart of createDetails.charts?? []) {
           const chartCreationPrompt = new PromptTemplate(`
             Based on the following chart details, generate the necessary steps to create this chart.
             Consider the chart type, data source, metrics, and dimensions.
@@ -67,10 +71,11 @@ export class DashboardAgent extends Agent {
           nextSteps: nextSteps,
         };
         break;
-      case 'modify_chart':
+      case 'modify':
         // Step 2: If intent is to modify a chart, generate steps for modification
-        const chartId = intentData.details.chart_id;
-        const modifications = intentData.details.modifications;
+        const modifyDetails = intentData.details as ICreateDetail;
+        const chartId = modifyDetails.chart_id;
+        const modifications = modifyDetails.modifications;
         this.logger.info(`Modifying chart: ${chartId} with changes:`, modifications);
 
         const chartModificationPrompt = new PromptTemplate(`
@@ -88,12 +93,14 @@ export class DashboardAgent extends Agent {
           nextSteps: nextSteps,
         };
         break;
-      case 'apply_data_operation':
+      case 'filter':
+      case 'sort':
         // Step 2: If intent isto apply a data operation, generate steps for it
-        const target = intentData.details.target;
-        const targetId = intentData.details.target_id;
-        const operationType = intentData.details.operation_type;
-        const operationDetails = intentData.details.details;
+        const details = intentData.details as IOperationDetail;
+        const target = details.target;
+        const targetId = details.targetId;
+        const operationType = details.operationType;
+        const operationDetails = details.details;
         this.logger.info(`Applying data operation (${operationType}) to ${target} ${targetId}:`, operationDetails);
 
         const dataOperationPrompt = new PromptTemplate(`
@@ -125,7 +132,7 @@ export class DashboardAgent extends Agent {
     return result;
   }
 
-  async handleStep(step: Step, workspace: Workspace): Promise<StepResult> {
+  async handleStep(step: Step): Promise<StepResult> {
     this.logger.info(`Executing step: ${step.description} (Type: ${step.type})`);
 
     // In a real scenario, you would have specific handlers for each step type
